@@ -42,43 +42,34 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   render() {
-    const {organization, location, selection, children} = this.props;
+    const {organization, location, children} = this.props;
 
     return (
-      <EventsContext.Provider
-        value={{
-          project: selection.projects,
-          environment: selection.environments,
-          ...selection.datetime,
-        }}
-      >
-        <Feature features={['global-views']} renderDisabled>
-          <GlobalSelectionHeader
-            organization={organization}
-            resetParamsOnChange={['zoom', 'cursor']}
-          />
-          <PageContent>
-            <NoProjectMessage organization={organization}>
-              <Body>
-                <PageHeader>
-                  <HeaderTitle>
-                    {t('Events')} <BetaTag />
-                  </HeaderTitle>
-                  <StyledSearchBar
-                    organization={organization}
-                    query={(location.query && location.query.query) || ''}
-                    placeholder={t(
-                      'Search for events, users, tags, and everything else.'
-                    )}
-                    onSearch={this.handleSearch}
-                  />
-                </PageHeader>
-                {children}
-              </Body>
-            </NoProjectMessage>
-          </PageContent>
-        </Feature>
-      </EventsContext.Provider>
+      <Feature features={['events']} renderDisabled>
+        <GlobalSelectionHeader
+          organization={organization}
+          resetParamsOnChange={['zoom', 'cursor']}
+        />
+        <PageContent>
+          <NoProjectMessage organization={organization}>
+            <Body>
+              <PageHeader>
+                <HeaderTitle>
+                  {t('Events')} <BetaTag />
+                </HeaderTitle>
+                <StyledSearchBar
+                  organization={organization}
+                  query={(location.query && location.query.query) || ''}
+                  placeholder={t('Search for events, users, tags, and everything else.')}
+                  onSearch={this.handleSearch}
+                />
+              </PageHeader>
+
+              {children}
+            </Body>
+          </NoProjectMessage>
+        </PageContent>
+      </Feature>
     );
   }
 }
