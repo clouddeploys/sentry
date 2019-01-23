@@ -15,19 +15,13 @@ class OrganizationStreamContainer extends React.Component {
 
   render() {
     const {organization, children} = this.props;
-    const hasProjects =
-      organization.projects.filter(p => p.isMember && p.hasAccess).length !== 0;
 
     return (
       <Feature features={['sentry10']} renderDisabled>
         <GlobalSelectionHeader organization={organization} />
 
         <PageContent>
-          {hasProjects ? (
-            children
-          ) : (
-            <NoProjectMessage organization={this.props.organization} />
-          )}
+          <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
         </PageContent>
       </Feature>
     );

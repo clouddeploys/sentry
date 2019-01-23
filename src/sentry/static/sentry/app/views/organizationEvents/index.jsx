@@ -5,7 +5,6 @@ import styled from 'react-emotion';
 
 import {getParams} from 'app/views/organizationEvents/utils/getParams';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -43,44 +42,43 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   render() {
-    const {organization, location, children} = this.props;
+    const {organization, location, selection, children} = this.props;
 
     return (
-      <Feature features={['events']} renderDisabled>
-        <GlobalSelectionHeader
-          organization={organization}
-          resetParamsOnChange={['zoom', 'cursor']}
-        />
-        <PageContent>
-          <Body>
-            <PageHeader>
-              <HeaderTitle>
-                {t('Events')} <BetaTag />
-              </HeaderTitle>
-              <StyledSearchBar
-                organization={organization}
-                query={(location.query && location.query.query) || ''}
-                placeholder={t('Search for events, users, tags, and everything else.')}
-                onSearch={this.handleSearch}
-              />
-            </PageHeader>
-
-<<<<<<< HEAD
-            {children}
-          </Body>
-        </PageContent>
-      </Feature>
-=======
-              {hasProjects ? (
-                children
-              ) : (
-                <StyledNoProjectMessage organization={this.props.organization} />
-              )}
-            </Body>
+      <EventsContext.Provider
+        value={{
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
+        }}
+      >
+        <Feature features={['global-views']} renderDisabled>
+          <GlobalSelectionHeader
+            organization={organization}
+            resetParamsOnChange={['zoom', 'cursor']}
+          />
+          <PageContent>
+            <NoProjectMessage organization={organization}>
+              <Body>
+                <PageHeader>
+                  <HeaderTitle>
+                    {t('Events')} <BetaTag />
+                  </HeaderTitle>
+                  <StyledSearchBar
+                    organization={organization}
+                    query={(location.query && location.query.query) || ''}
+                    placeholder={t(
+                      'Search for events, users, tags, and everything else.'
+                    )}
+                    onSearch={this.handleSearch}
+                  />
+                </PageHeader>
+                {children}
+              </Body>
+            </NoProjectMessage>
           </PageContent>
         </Feature>
       </EventsContext.Provider>
->>>>>>> add it to all of the pertinent top level tab views
     );
   }
 }
@@ -93,10 +91,6 @@ const Body = styled('div')`
   background-color: ${p => p.theme.whiteDark};
   flex-direction: column;
   flex: 1;
-`;
-
-const StyledNoProjectMessage = styled(NoProjectMessage)`
-  margin-top: ${space(4)};
 `;
 
 const HeaderTitle = styled(PageHeading)`

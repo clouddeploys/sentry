@@ -112,8 +112,6 @@ class OrganizationReleases extends AsyncView {
 
   renderBody() {
     const {organization, location} = this.props;
-    const hasProjects =
-      organization.projects.filter(p => p.isMember && p.hasAccess).length !== 0;
 
     return (
       <Feature
@@ -123,19 +121,19 @@ class OrganizationReleases extends AsyncView {
       >
         <GlobalSelectionHeader organization={organization} />
         <PageContent>
-          <PageHeader>
-            <PageHeading>{t('Releases')}</PageHeading>
-            <div>
-              <SearchBar
-                defaultQuery=""
-                placeholder={t('Search for a release')}
-                query={location.query.query}
-                onSearch={this.onSearch}
-              />
-            </div>
-          </PageHeader>
+          <NoProjectMessage organization={organization}>
+            <PageHeader>
+              <PageHeading>{t('Releases')}</PageHeading>
+              <div>
+                <SearchBar
+                  defaultQuery=""
+                  placeholder={t('Search for a release')}
+                  query={location.query.query}
+                  onSearch={this.onSearch}
+                />
+              </div>
+            </PageHeader>
 
-          {hasProjects ? (
             <div>
               <Panel>
                 <ReleaseListHeader />
@@ -143,9 +141,7 @@ class OrganizationReleases extends AsyncView {
               </Panel>
               <Pagination pageLinks={this.state.releaseListPageLinks} />
             </div>
-          ) : (
-            <NoProjectMessage organization={this.props.organization} />
-          )}
+          </NoProjectMessage>
         </PageContent>
       </Feature>
     );

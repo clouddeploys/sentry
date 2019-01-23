@@ -106,8 +106,6 @@ class OrganizationUserFeedback extends AsyncView {
 
   renderBody() {
     const {organization} = this.props;
-    const hasProjects =
-      organization.projects.filter(p => p.isMember && p.hasAccess).length !== 0;
 
     return (
       <Feature
@@ -117,11 +115,9 @@ class OrganizationUserFeedback extends AsyncView {
       >
         <GlobalSelectionHeader organization={organization} />
         <PageContent>
-          {hasProjects ? (
-            this.renderStreamBody()
-          ) : (
-            <NoProjectMessage organization={this.props.organization} />
-          )}
+          <NoProjectMessage organization={organization}>
+            {this.renderStreamBody()}
+          </NoProjectMessage>
         </PageContent>
       </Feature>
     );
