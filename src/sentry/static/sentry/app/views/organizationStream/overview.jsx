@@ -27,7 +27,6 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {logAjaxError} from 'app/utils/logging';
 import Pagination from 'app/components/pagination';
-import NoProjectMessage from 'app/components/noProjectMessage';
 import ProcessingIssueHint from 'app/views/stream/processingIssueHint';
 import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
@@ -599,9 +598,7 @@ const OrganizationStream = createReactClass({
       projectId = selectedProject.slug;
     }
 
-    return Object.keys(this.state.memberList || {}).length == 0 ? (
-      <NoProjectMessage organization={this.props.organization} />
-    ) : (
+    return (
       <div className={classNames(classes)}>
         <Panel>
           <EventsChart query="" organization={this.props.organization} />

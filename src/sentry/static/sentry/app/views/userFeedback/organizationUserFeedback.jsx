@@ -10,6 +10,7 @@ import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
 
@@ -105,6 +106,8 @@ class OrganizationUserFeedback extends AsyncView {
 
   renderBody() {
     const {organization} = this.props;
+    const hasProjects =
+      organization.projects.filter(p => p.isMember && p.hasAccess).length !== 0;
 
     return (
       <Feature
@@ -113,7 +116,13 @@ class OrganizationUserFeedback extends AsyncView {
         renderDisabled={this.renderNoAccess}
       >
         <GlobalSelectionHeader organization={organization} />
-        <PageContent>{this.renderStreamBody()}</PageContent>
+        <PageContent>
+          {hasProjects ? (
+            this.renderStreamBody()
+          ) : (
+            <NoProjectMessage organization={this.props.organization} />
+          )}
+        </PageContent>
       </Feature>
     );
   }
