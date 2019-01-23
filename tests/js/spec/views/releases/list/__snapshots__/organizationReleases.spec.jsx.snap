@@ -1780,7 +1780,7 @@ exports[`OrganizationReleases renders 1`] = `
               <div
                 className="css-rejmra-PageContent e6lvex70"
               >
-                <EmptyState
+                <NoProjectMessage
                   organization={
                     Object {
                       "access": Array [
@@ -2310,7 +2310,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                       onCursor={[Function]}
                     />
                   </div>
-                </EmptyState>
+                </NoProjectMessage>
               </div>
             </PageContent>
           </Feature>
