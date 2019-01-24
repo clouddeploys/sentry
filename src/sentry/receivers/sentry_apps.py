@@ -3,9 +3,10 @@ from __future__ import absolute_import
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from sentry.models import Group, Organization
+from sentry.models import Group, GroupAssignee, Organization
 from sentry.signals import (
     issue_ignored,
+    issue_assigned,
     issue_resolved,
     issue_resolved_in_release,
     resolved_with_commit,
@@ -31,6 +32,29 @@ def issue_saved(sender, instance, created, **kwargs):
     )
 
 
+@issue_assigned.connect(weak=False)
+def issue_assigned(project, group, user, **kwargs):
+    assignee = GroupAssignee.objects.get(
+        group_id=group.id,
+    ).assigned_actor()
+
+    actor = assignee.resolve()
+
+    data = {
+        'assignee': {
+            'type': assignee.type.__name__.lower(),
+            'name': actor.name,
+        }
+    }
+
+    org = project.organization
+
+    if hasattr(actor, 'email') and not org.flags.enhanced_privacy:
+        data['assignee']['email'] = actor.email
+
+    send_workflow_webhooks(org, group, user, 'issue.assigned', data=data)
+
+
 @issue_resolved_in_release.connect(weak=False)
 def issue_resolved_in_release(project, group, user, resolution_type, **kwargs):
     send_workflow_webhooks(
@@ -38,7 +62,7 @@ def issue_resolved_in_release(project, group, user, resolution_type, **kwargs):
         group,
         user,
         'issue.resolved',
-        {'resolution_type': 'resolved_in_release'},
+        data={'resolution_type': 'resolved_in_release'},
     )
 
 
@@ -49,7 +73,7 @@ def issue_resolved(project, group, user, **kwargs):
         group,
         user,
         'issue.resolved',
-        {'resolution_type': 'resolved'},
+        data={'resolution_type': 'resolved'},
     )
 
 
@@ -72,7 +96,7 @@ def resolved_with_commit(organization_id, group, user, **kwargs):
         group,
         user,
         'issue.resolved',
-        {'resolution_type': 'resolved_in_commit'},
+        data={'resolution_type': 'resolved_in_commit'},
     )
 
 
