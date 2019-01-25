@@ -1,14 +1,22 @@
-import {isEqual} from 'lodash';
+import {css} from 'react-emotion';
+import {isEqual, zipWith} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {OPERATOR} from 'app/views/organizationDiscover/data';
 import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
 import {getChartComponent} from 'app/views/organizationDashboard/utils/getChartComponent';
 import {getData} from 'app/views/organizationDashboard/utils/getData';
+import {getEventsUrlPathFromDiscoverQuery} from 'app/views/organizationDashboard/utils/getEventsUrlPathFromDiscoverQuery';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ExploreWidget from 'app/views/organizationDashboard/exploreWidget';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
+import theme from 'app/utils/theme';
+
+const tableRowCss = css`
+  color: ${theme.textColor};
+`;
 
 /**
  * Component that decides what Chart to render
@@ -52,7 +60,7 @@ class WidgetChart extends React.Component {
   }
 
   render() {
-    const {results, releases, router, selection, widget} = this.props;
+    const {organization, results, releases, router, selection, widget} = this.props;
     const isTable = widget.type === WIDGET_DISPLAY.TABLE;
 
     // get visualization based on widget data
@@ -65,6 +73,29 @@ class WidgetChart extends React.Component {
       ...(isTable && {
         headerProps: {hasButtons: true},
         extraTitle: <ExploreWidget {...{widget, router, selection}} />,
+        rowClassName: tableRowCss,
+        getRowLink: obj => {
+          if (!obj || typeof obj.name === 'undefined') return null;
+
+          // Table Charts don't support multiple queries
+          const [query] = widget.queries.discover;
+
+          return getEventsUrlPathFromDiscoverQuery({
+            organization,
+            selection,
+            query: {
+              ...query,
+              conditions: [
+                ...query.conditions,
+                ...zipWith(query.groupby, obj.name.split(','), (field, value) => [
+                  field,
+                  OPERATOR.EQUAL,
+                  value,
+                ]),
+              ],
+            },
+          });
+        },
       }),
     };
 

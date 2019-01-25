@@ -1,6 +1,7 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {cx} from 'react-emotion';
 
 import {t} from 'app/locale';
 import Count from 'app/components/count';
@@ -60,6 +61,17 @@ class PercentageTableChart extends React.Component {
 
     extraTitle: PropTypes.node,
     onRowClick: PropTypes.func,
+
+    // Class name for header
+    headerClassName: PropTypes.string,
+
+    // Class name for rows
+    rowClassName: PropTypes.string,
+
+    // If this is a function and returns a truthy value, then the row will be a link
+    // to the return value of this function
+    getRowLink: PropTypes.func,
+
     data: PropTypes.arrayOf(
       PropTypes.shape({
         name: PropTypes.node,
@@ -83,7 +95,17 @@ class PercentageTableChart extends React.Component {
   };
 
   render() {
-    const {height, headerProps, title, countTitle, extraTitle, data} = this.props;
+    const {
+      rowClassName,
+      headerClassName,
+      getRowLink,
+      height,
+      headerProps,
+      title,
+      countTitle,
+      extraTitle,
+      data,
+    } = this.props;
 
     return (
       <TableChart
@@ -104,7 +126,14 @@ class PercentageTableChart extends React.Component {
           </React.Fragment>,
         ])}
         renderRow={({items, rowIndex, ...other}) => (
-          <Row onClick={this.handleRowClick} data={data} rowIndex={rowIndex}>
+          <Row
+            dataRowClassName={rowClassName}
+            headerRowClassName={headerClassName}
+            getRowLink={getRowLink}
+            onClick={this.handleRowClick}
+            data={data}
+            rowIndex={rowIndex}
+          >
             <NameAndCountContainer>
               {items[0]}
               <div>{items[1]}</div>
@@ -120,19 +149,39 @@ class PercentageTableChart extends React.Component {
   }
 }
 
-const Row = styled(function RowComponent({className, data, rowIndex, onClick, children}) {
-  return (
-    <div
-      className={className}
-      onClick={e => typeof onClick === 'function' && onClick(data[rowIndex], e)}
-    >
-      {children}
-    </div>
-  );
+const Row = styled(function RowComponent({
+  headerRowClassName,
+  dataRowClassName,
+  className,
+  data,
+  getRowLink,
+  rowIndex,
+  onClick,
+  children,
+}) {
+  const isLink = typeof getRowLink === 'function' && rowIndex > -1;
+  const linkPath = isLink && getRowLink(data[rowIndex]);
+  const Component = isLink ? Link : 'div';
+  const rowProps = {
+    className: cx(
+      className,
+      rowIndex > -1 && dataRowClassName,
+      rowIndex === -1 && headerRowClassName
+    ),
+    children,
+    ...(linkPath && {
+      to: linkPath,
+    }),
+    ...(!isLink &&
+      typeof onClick === 'function' && {
+        onClick: e => onClick(data[rowIndex], e),
+      }),
+  };
+
+  return <Component {...rowProps} />;
 })`
   display: flex;
   flex: 1;
-  cursor: pointer;
 `;
 
 const StyledPercentageTableChart = styled(PercentageTableChart)`
