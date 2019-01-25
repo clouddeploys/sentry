@@ -25,18 +25,18 @@ class Widget extends React.Component {
 
   render() {
     const {organization, router, widget, releases, selection} = this.props;
-    const {type, title, includePreviousPeriod, compareToPeriod, queries} = widget;
+    const {type, title, includePreviousPeriod, compareToPeriod} = widget;
     const isTable = type === WIDGET_DISPLAY.TABLE;
 
     return (
       <DiscoverQuery
         organization={organization}
         selection={selection}
-        queries={queries.discover}
+        queries={widget.queries.discover}
         includePreviousPeriod={includePreviousPeriod}
         compareToPeriod={compareToPeriod}
       >
-        {({results, reloading}) => {
+        {({queries, results, reloading}) => {
           // Show a placeholder "square" during initial load
           if (results === null) {
             return <Placeholder />;
@@ -49,6 +49,7 @@ class Widget extends React.Component {
             widget,
             reloading,
             router,
+            organization,
           };
 
           return (
@@ -60,7 +61,7 @@ class Widget extends React.Component {
                   <PanelHeader hasButtons>
                     {title}
 
-                    <ExploreWidget {...{widget, router, selection}} />
+                    <ExploreWidget {...{widget, queries, router, selection}} />
                   </PanelHeader>
 
                   <StyledPanelBody>
