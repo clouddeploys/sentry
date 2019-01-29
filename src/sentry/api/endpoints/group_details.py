@@ -12,7 +12,8 @@ from sentry import eventstream, tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.serializers import serialize, GroupSerializer
+from sentry.api.helpers.environments import get_environments
+from sentry.api.serializers import serialize, GroupSerializer, GroupSerializerSnuba
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
 from sentry.models import (
@@ -179,14 +180,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         # TODO(dcramer): handle unauthenticated/public response
-        data = serialize(
-            group,
-            request.user,
-            GroupSerializer(
-                environment_func=self._get_environment_func(
-                    request, group.project.organization_id)
-            )
-        )
 
         # TODO: these probably should be another endpoint
         activity = self._get_activity(request, group, num=100)
@@ -206,24 +199,64 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         if last_release:
             last_release = self._get_release_info(request, group, last_release)
 
-        try:
-            environment_id = self._get_environment_id_from_request(
-                request, group.project.organization_id)
-        except Environment.DoesNotExist:
-            get_range = lambda model, keys, start, end, **kwargs: \
-                {k: tsdb.make_series(0, start, end) for k in keys}
-            tags = []
-            user_reports = UserReport.objects.none()
+        # TODO(jess): This is a little gross right now, but I think we should be able
+        # to switch over to using the snuba group serializer soon, but I think at the
+        # very least, i need to update the snuba tagstore backend
+        # `get_group_seen_values_for_environments` to use GroupEnvironment.first_seen so that
+        # first_seen is correct before we force it on everyone. Also, right now, the way we
+        # handle passing invalid environments is different.
+        use_snuba = request.GET.get('enable_snuba') == '1'
+        environment_ids = None
+        environment_id = None
+        tags = []
+        user_reports = UserReport.objects.none()
 
-        else:
+        if use_snuba:
+            environment_ids = [
+                e.id for e in get_environments(request, group.project.organization)
+            ]
+            data = serialize(
+                group,
+                request.user,
+                GroupSerializerSnuba(
+                    environment_ids=environment_ids,
+                )
+            )
             get_range = functools.partial(tsdb.get_range,
-                                          environment_ids=environment_id and [environment_id])
-            tags = tagstore.get_group_tag_keys(
-                group.project_id, group.id, environment_id, limit=100)
-            if environment_id is None:
-                user_reports = UserReport.objects.filter(group=group)
+                                          environment_ids=environment_ids)
+        else:
+            data = serialize(
+                group,
+                request.user,
+                GroupSerializer(
+                    environment_func=self._get_environment_func(
+                        request, group.project.organization_id)
+                )
+            )
+
+            try:
+                environment_id = self._get_environment_id_from_request(
+                    request, group.project.organization_id)
+            except Environment.DoesNotExist:
+                get_range = lambda model, keys, start, end, **kwargs: \
+                    {k: tsdb.make_series(0, start, end) for k in keys}
+                tags = []
+                user_reports = UserReport.objects.none()
+
             else:
-                user_reports = UserReport.objects.filter(group=group, environment_id=environment_id)
+                environment_ids = environment_id and [environment_id]
+                get_range = functools.partial(tsdb.get_range,
+                                              environment_ids=environment_id and [environment_id])
+
+        # TODO(jess): this method still needs to be updated to support muli env
+        tags = tagstore.get_group_tag_keys(
+            group.project_id, group.id, environment_id, limit=100)
+        if not environment_ids:
+            user_reports = UserReport.objects.filter(group=group)
+        else:
+            user_reports = UserReport.objects.filter(
+                group=group, environment_id__in=environment_ids
+            )
 
         now = timezone.now()
         hourly_stats = tsdb.rollup(
@@ -271,25 +304,19 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         # the current release is the 'latest seen' release within the
         # environment even if it hasnt affected this issue
-
-        try:
-            environment = self._get_environment_from_request(
-                request,
-                group.project.organization_id,
-            )
-        except Environment.DoesNotExist:
-            environment = None
-
-        if environment is not None:
+        if environment_ids:
+            env_names = Environment.objects.filter(
+                organization_id=group.project.organization_id, id__in=environment_ids
+            ).values_list('name', flat=True)
             try:
                 current_release = GroupRelease.objects.filter(
                     group_id=group.id,
-                    environment=environment.name,
+                    environment__in=env_names,
                     release_id=ReleaseEnvironment.objects.filter(
                         release_id__in=ReleaseProject.objects.filter(project_id=group.project_id
                                                                      ).values_list('release_id', flat=True),
                         organization_id=group.project.organization_id,
-                        environment_id=environment.id,
+                        environment_id__in=environment_ids,
                     ).order_by('-first_seen').values_list('release_id', flat=True)[:1],
                 )[0]
             except IndexError:
