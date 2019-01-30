@@ -4,10 +4,10 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {LoadingMask} from 'app/views/organizationEvents/loadingPanel';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {WIDGET_DISPLAY} from 'app/views/organizationDashboard/constants';
+import {Panel, PanelBody} from 'app/components/panels';
 import ExploreWidget from 'app/views/organizationDashboard/exploreWidget';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -25,8 +25,7 @@ class Widget extends React.Component {
 
   render() {
     const {organization, router, widget, releases, selection} = this.props;
-    const {type, title, includePreviousPeriod, compareToPeriod} = widget;
-    const isTable = type === WIDGET_DISPLAY.TABLE;
+    const {title, includePreviousPeriod, compareToPeriod} = widget;
 
     return (
       <DiscoverQuery
@@ -53,23 +52,18 @@ class Widget extends React.Component {
           };
 
           return (
-            <WidgetWrapper>
+            <WidgetWrapperForMask>
               {reloading && <ReloadingMask />}
-              {isTable && <WidgetChart {...widgetChartProps} />}
-              {!isTable && (
-                <Panel>
-                  <PanelHeader hasButtons>
-                    {title}
-
-                    <ExploreWidget {...{widget, queries, router, selection}} />
-                  </PanelHeader>
-
-                  <StyledPanelBody>
-                    <WidgetChart {...widgetChartProps} />
-                  </StyledPanelBody>
-                </Panel>
-              )}
-            </WidgetWrapper>
+              <StyledPanel>
+                <WidgetHeader>
+                  {title}
+                  <ExploreWidget {...{widget, queries, router, selection}} />
+                </WidgetHeader>
+                <StyledPanelBody>
+                  <WidgetChart {...widgetChartProps} />
+                </StyledPanelBody>
+              </StyledPanel>
+            </WidgetWrapperForMask>
           );
         }}
       </DiscoverQuery>
@@ -80,6 +74,10 @@ class Widget extends React.Component {
 export default withRouter(withOrganization(withGlobalSelection(Widget)));
 export {Widget};
 
+const StyledPanel = styled(Panel)`
+  margin-bottom: ${space(2)};
+`;
+
 const StyledPanelBody = styled(PanelBody)`
   height: 200px;
 `;
@@ -89,11 +87,18 @@ const Placeholder = styled('div')`
   height: 248px;
 `;
 
-const WidgetWrapper = styled('div')`
+const WidgetWrapperForMask = styled('div')`
   position: relative;
 `;
 
 const ReloadingMask = styled(LoadingMask)`
   z-index: 1;
   opacity: 0.6;
+`;
+
+const WidgetHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${space(1)} ${space(2)};
 `;
