@@ -28,7 +28,18 @@ class EventsTableBody extends React.PureComponent {
       const project = projectsMap.get(event.projectID);
       const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
 
-      const eventLink = new Set(organization.features).has('sentry10')
+      const hasSentry10 = new Set(organization.features).has('sentry10');
+
+      const idBadge = (
+        <IdBadge
+          project={project}
+          avatarSize={16}
+          displayName={<span>{project.slug}</span>}
+          avatarProps={{consistentWidth: true}}
+        />
+      );
+
+      const eventLink = hasSentry10
         ? `/organizations/${organization.slug}/events/${event.eventID}/`
         : `/${organization.slug}/${project.slug}/events/${event.eventID}/`;
 
@@ -41,14 +52,11 @@ class EventsTableBody extends React.PureComponent {
           </TableData>
 
           <TableData>
-            <Project to={`/${organization.slug}/${project.slug}/`}>
-              <IdBadge
-                project={project}
-                avatarSize={16}
-                displayName={<span>{project.slug}</span>}
-                avatarProps={{consistentWidth: true}}
-              />
-            </Project>
+            {hasSentry10 ? (
+              idBadge
+            ) : (
+              <Project to={`/${organization.slug}/${project.slug}/`}>{idBadge}</Project>
+            )}
           </TableData>
 
           <TableData>
